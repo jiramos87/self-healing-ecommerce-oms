@@ -17,14 +17,14 @@ Effort: S < 0.5 day, M = 0.5-1.5 days, L > 1.5 days.
 
 | item | status | date | sha | evidence |
 |---|---|---|---|---|
-| B01 | done | 2026-07-09 | d6a658e | TRIGGER_MODE=background; 5/5 POST /spike ack <1s; SPIKE_BG_DONE in runtime logs + poll status=done after 10s; throwaway project vercel-py-bg-spike deleted |
-| B02 | done | 2026-07-09 | d6a658e | ruff+pyright+pytest green (1 passed test_health_returns_ok); uvicorn boot + curl /health 200 {"ok":true}; gh repo view jiramos87/self-healing-ecommerce-oms PUBLIC; also .python-version + api/tests __init__.py |
-| B03 | done | 2026-07-09 | d6a658e | CREATE DATABASE self_healing_oms on just-recreation Postgres; migrate 001_init; psql lists orders/incidents/counters; test_create_and_read_order_and_incident passed; ruff+pyright+pytest green (2); local .env set (needs-human: Vercel DATABASE_URL later) |
-| B04 | done | 2026-07-09 | d6a658e | pytest 13 passed (test_webhook: 401/422/created/unknown_region/phone_format/cancelled/duplicate/recurrence + health/db); ruff+pyright green; also app/main.py router wire + app/db.py helpers |
-| B05 | done | 2026-07-09 | d6a658e | pytest 24 passed (simulate per-class, novelty, 429, capped, 503, health caps); curl all 5 classes + /health; also app/db.py counters + app/main.py/webhooks.py wiring |
-| B06 | done | 2026-07-09 | d6a658e | test_kb 4 passed (per-class, cancelled no-action, keyword fallback, unknown default); grep docs/runbooks/ no employer names; ruff+pyright+pytest 28 passed; needs-human: runbook copy review |
-| B07 | done | 2026-07-09 | d6a658e | test_agent 6 passed (trace/fallback/cap/stalled/providers_down); live OpenRouter unknown_region ready_to_act recipe QQ→Quebrada Quimera, 2 LLM calls, trace 6 steps; ruff+pyright+pytest green; also requirements langgraph 1.2.8 + db update/append_trace |
-| B08 | blocked | 2026-07-09 | d6a658e | pytest recipes+github+agent green (code review pass, 53 total); ruff+pyright green; live issue #1 opened; committed at d6a658e (first main commit now exists); PR still blocked: needs-human push + GITHUB_FIX_PAT |
+| B01 | done | 2026-07-09 | eb831fa | TRIGGER_MODE=background; 5/5 POST /spike ack <1s; SPIKE_BG_DONE in runtime logs + poll status=done after 10s; throwaway project vercel-py-bg-spike deleted |
+| B02 | done | 2026-07-09 | eb831fa | ruff+pyright+pytest green (1 passed test_health_returns_ok); uvicorn boot + curl /health 200 {"ok":true}; gh repo view jiramos87/self-healing-ecommerce-oms PUBLIC; also .python-version + api/tests __init__.py |
+| B03 | done | 2026-07-09 | eb831fa | CREATE DATABASE self_healing_oms on just-recreation Postgres; migrate 001_init; psql lists orders/incidents/counters; test_create_and_read_order_and_incident passed; ruff+pyright+pytest green (2); local .env set (needs-human: Vercel DATABASE_URL later) |
+| B04 | done | 2026-07-09 | eb831fa | pytest 13 passed (test_webhook: 401/422/created/unknown_region/phone_format/cancelled/duplicate/recurrence + health/db); ruff+pyright green; also app/main.py router wire + app/db.py helpers |
+| B05 | done | 2026-07-09 | eb831fa | pytest 24 passed (simulate per-class, novelty, 429, capped, 503, health caps); curl all 5 classes + /health; also app/db.py counters + app/main.py/webhooks.py wiring |
+| B06 | done | 2026-07-09 | eb831fa | test_kb 4 passed (per-class, cancelled no-action, keyword fallback, unknown default); grep docs/runbooks/ no employer names; ruff+pyright+pytest 28 passed; needs-human: runbook copy review |
+| B07 | done | 2026-07-09 | eb831fa | test_agent 6 passed (trace/fallback/cap/stalled/providers_down); live OpenRouter unknown_region ready_to_act recipe QQ→Quebrada Quimera, 2 LLM calls, trace 6 steps; ruff+pyright+pytest green; also requirements langgraph 1.2.8 + db update/append_trace |
+| B08 | blocked | 2026-07-09 | eb831fa | pytest recipes+github+agent green (code review pass, 53 total); ruff+pyright green; live issue #1 opened; committed and pushed at eb831fa (first main commit); PR still blocked: needs-human GITHUB_FIX_PAT |
 | B09 | pending | - | - | - |
 | B10 | pending | - | - | - |
 | B11 | pending | - | - | - |
