@@ -1,0 +1,19 @@
+{
+  "products": [
+    {
+      "sku": "TEE-001",
+      "title": "Organic Cotton Tee",
+      "price": "19990"
+    },
+    {
+      "sku": "MUG-001",
+      "title": "Ceramic Mug",
+      "price": "9990"
+    },
+    {
+      "sku": "HOOD-001",
+      "title": "Fleece Hoodie",
+      "price": "44990"
+    }
+  ]
+}

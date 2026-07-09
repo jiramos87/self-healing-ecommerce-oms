@@ -1,0 +1,24 @@
+{
+  "rules": [
+    {
+      "name": "e164_mobile",
+      "pattern": "^\\+569\\d{8}$",
+      "description": "E.164 Chilean mobile"
+    },
+    {
+      "name": "e164_mobile_spaced",
+      "pattern": "^\\+56\\s9\\s\\d{4}\\s\\d{4}$",
+      "description": "Spaced Chilean mobile with country code"
+    },
+    {
+      "name": "local_mobile",
+      "pattern": "^9\\d{8}$",
+      "description": "Local Chilean mobile without country code"
+    },
+    {
+      "name": "e164_landline_santiago",
+      "pattern": "^\\+562\\d{8}$",
+      "description": "E.164 Santiago landline"
+    }
+  ]
+}

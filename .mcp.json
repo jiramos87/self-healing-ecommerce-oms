@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "agentic-dev-kit": {
+      "command": "node",
+      "args": ["/Users/javier/projects/agentic-dev-kit/mcp-server/dist/index.js"]
+    }
+  }
+}
