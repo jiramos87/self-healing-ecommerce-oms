@@ -24,7 +24,7 @@ Effort: S < 0.5 day, M = 0.5-1.5 days, L > 1.5 days.
 | B05 | done | 2026-07-09 | eb831fa | pytest 24 passed (simulate per-class, novelty, 429, capped, 503, health caps); curl all 5 classes + /health; also app/db.py counters + app/main.py/webhooks.py wiring |
 | B06 | done | 2026-07-09 | eb831fa | test_kb 4 passed (per-class, cancelled no-action, keyword fallback, unknown default); grep docs/runbooks/ no employer names; ruff+pyright+pytest 28 passed; needs-human: runbook copy review |
 | B07 | done | 2026-07-09 | eb831fa | test_agent 6 passed (trace/fallback/cap/stalled/providers_down); live OpenRouter unknown_region ready_to_act recipe QQ→Quebrada Quimera, 2 LLM calls, trace 6 steps; ruff+pyright+pytest green; also requirements langgraph 1.2.8 + db update/append_trace |
-| B08 | blocked | 2026-07-09 | eb831fa | pytest recipes+github+agent green (code review pass, 53 total); ruff+pyright green; live issue #1 opened; committed and pushed at eb831fa (first main commit); PR still blocked: needs-human GITHUB_FIX_PAT |
+| B08 | done | 2026-07-09 | eb831fa | pytest recipes+github+agent green (code review pass, 53 total); ruff+pyright green. Live proof against jiramos87/self-healing-ecommerce-oms with GITHUB_FIX_PAT: unknown_region SF -> pr_opened, issue #2 + PR #3, diff exactly 1 file +1/-0 (branch agent/fix-proofrun-sf), 2 LLM calls (gemini-3.5-flash diagnose+extract), trace 7 steps. Proof artifacts left open for human review. |
 | B09 | pending | - | - | - |
 | B10 | pending | - | - | - |
 | B11 | pending | - | - | - |
