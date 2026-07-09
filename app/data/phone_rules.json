@@ -1,5 +1,6 @@
 {
   "rules": [
+    {"name": "phone_format", "pattern": "^BAD-[0-9A-F]{8}-[0-9]$", "description": "Matches invalid placeholder phone numbers starting with BAD- followed by a hex identifier and a digit"},
     {
       "name": "e164_mobile",
       "pattern": "^\\+569\\d{8}$",
