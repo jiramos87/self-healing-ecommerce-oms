@@ -1,0 +1,135 @@
+name: PR hygiene (agent artifacts)
+
+# Public demo traffic lets anyone trigger the agent, which opens a real issue
+# and a fix PR each time. This scheduled job keeps the repo clean: it closes
+# stale agent PRs and issues and prunes their branches, so nothing piles up.
+# It only ever touches agent artifacts (PRs on agent/fix-* branches and issues
+# titled "[agent] ..."); human PRs, human issues, and main are never touched.
+# It uses the default GITHUB_TOKEN (not GITHUB_FIX_PAT), is idempotent, and is
+# safe to re-run. A dry run lists what would change without modifying anything.
+
+on:
+  schedule:
+    - cron: "0 7 * * *"  # daily, 07:00 UTC
+  workflow_dispatch:
+    inputs:
+      max_age_hours:
+        description: "Close/prune agent artifacts older than this many hours"
+        required: false
+        default: "24"
+      dry_run:
+        description: "List what would change without modifying anything"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write        # delete agent/fix-* branches
+  issues: write          # close agent issues
+  pull-requests: write   # close agent PRs
+
+concurrency:
+  group: pr-hygiene
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const AGENT_BRANCH_PREFIX = "agent/fix-";
+            const AGENT_ISSUE_PREFIX = "[agent]";
+
+            const rawAge = context.payload.inputs?.max_age_hours;
+            const parsedAge = (rawAge === undefined || rawAge === null || rawAge === "")
+              ? 24 : Number(rawAge);
+            const maxAgeHours = Number.isFinite(parsedAge) ? parsedAge : 24;  // allow 0
+            const dryRun = String(context.payload.inputs?.dry_run ?? "false") === "true";
+            const cutoff = Date.now() - maxAgeHours * 3600 * 1000;
+            const { owner, repo } = context.repo;
+            const defaultBranch = context.payload.repository.default_branch;
+
+            const isStale = (iso) => {
+              const t = Date.parse(iso);
+              return !isNaN(t) && t < cutoff;
+            };
+            // 422 means the ref is already gone: deletion is idempotent.
+            const deleteBranch = async (name) => {
+              try {
+                await github.rest.git.deleteRef({ owner, repo, ref: `heads/${name}` });
+                return true;
+              } catch (e) {
+                if (e.status === 422 || e.status === 404) return false;
+                throw e;
+              }
+            };
+
+            const result = { closedPRs: [], closedIssues: [], deletedBranches: new Set(), keptPRs: [] };
+
+            // 1) Close stale agent PRs and delete their branches.
+            const prs = await github.paginate(github.rest.pulls.list, {
+              owner, repo, state: "open", per_page: 100,
+            });
+            for (const pr of prs) {
+              const head = pr.head?.ref || "";
+              if (!head.startsWith(AGENT_BRANCH_PREFIX)) continue;   // never touch human PRs
+              if (pr.base?.ref !== defaultBranch) continue;
+              if (!isStale(pr.created_at)) { result.keptPRs.push(pr.number); continue; }
+              if (dryRun) { result.closedPRs.push(pr.number); result.deletedBranches.add(head); continue; }
+              await github.rest.pulls.update({ owner, repo, pull_number: pr.number, state: "closed" });
+              result.closedPRs.push(pr.number);
+              if (await deleteBranch(head)) result.deletedBranches.add(head);
+            }
+
+            // 2) Close stale agent issues (title prefix). Closing a PR does not
+            //    close its "Fixes #n" issue (only a merge does), so do it here.
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: "open", per_page: 100,
+            });
+            for (const issue of issues) {
+              if (issue.pull_request) continue;                     // the issues endpoint also lists PRs
+              if (!(issue.title || "").startsWith(AGENT_ISSUE_PREFIX)) continue;
+              if (!isStale(issue.created_at)) continue;
+              if (dryRun) { result.closedIssues.push(issue.number); continue; }
+              await github.rest.issues.update({
+                owner, repo, issue_number: issue.number,
+                state: "closed", state_reason: "not_planned",
+              });
+              result.closedIssues.push(issue.number);
+            }
+
+            // 3) Prune orphan agent branches (no open PR, last commit older than
+            //    the cutoff). Catches merged-PR and crashed-run leftovers. The
+            //    commit-age guard avoids racing a run that just created a branch.
+            const branches = await github.paginate(github.rest.repos.listBranches, {
+              owner, repo, per_page: 100,
+            });
+            const openHeads = new Set(
+              (await github.paginate(github.rest.pulls.list, { owner, repo, state: "open", per_page: 100 }))
+                .map((p) => p.head?.ref)
+            );
+            for (const b of branches) {
+              if (!b.name.startsWith(AGENT_BRANCH_PREFIX)) continue;
+              if (openHeads.has(b.name)) continue;                  // keep branches of open PRs
+              const commit = await github.rest.repos.getCommit({ owner, repo, ref: b.commit.sha });
+              const when = commit.data.commit?.committer?.date || commit.data.commit?.author?.date;
+              if (!isStale(when)) continue;
+              if (dryRun) { result.deletedBranches.add(b.name); continue; }
+              if (await deleteBranch(b.name)) result.deletedBranches.add(b.name);
+            }
+
+            const branchList = [...result.deletedBranches];
+            core.summary
+              .addHeading(dryRun ? "PR hygiene (dry run)" : "PR hygiene")
+              .addRaw(`Cutoff: artifacts older than ${maxAgeHours}h.`, true)
+              .addTable([
+                [{ data: "Action", header: true }, { data: "Count", header: true }, { data: "Items", header: true }],
+                [dryRun ? "PRs would close" : "PRs closed", String(result.closedPRs.length), result.closedPRs.join(", ") || "-"],
+                [dryRun ? "Issues would close" : "Issues closed", String(result.closedIssues.length), result.closedIssues.join(", ") || "-"],
+                [dryRun ? "Branches would prune" : "Branches pruned", String(branchList.length), branchList.join(", ") || "-"],
+                ["Agent PRs kept (too fresh)", String(result.keptPRs.length), result.keptPRs.join(", ") || "-"],
+              ]);
+            await core.summary.write();
+            core.info(JSON.stringify({ ...result, deletedBranches: branchList }, null, 2));
