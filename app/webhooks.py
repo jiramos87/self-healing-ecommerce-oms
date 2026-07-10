@@ -11,7 +11,7 @@ import os
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Header, Request
+from fastapi import APIRouter, BackgroundTasks, Header, Request
 from fastapi.responses import JSONResponse
 from psycopg import errors as pg_errors
 from pydantic import ValidationError
@@ -190,17 +190,35 @@ def process_order_webhook(
 @router.post("/webhooks/orders")
 async def orders_webhook(
     request: Request,
+    background_tasks: BackgroundTasks,
     x_shopify_hmac_sha256: str | None = Header(default=None, alias=HMAC_HEADER),
     x_shopify_shop_domain: str | None = Header(default=None, alias=SHOP_HEADER),
 ) -> JSONResponse:
     raw_body = await request.body()
     # All webhook work is blocking sync I/O; keep it off the event loop.
-    return await run_in_threadpool(
+    response = await run_in_threadpool(
         process_order_webhook,
         raw_body,
         hmac_signature=x_shopify_hmac_sha256,
         shop_domain=x_shopify_shop_domain,
     )
+    _schedule_from_response(response, background_tasks)
+    return response
+
+
+def _schedule_from_response(
+    response: JSONResponse,
+    background_tasks: BackgroundTasks | None,
+) -> None:
+    """Kick off the agent when the ingestion result flagged a trigger."""
+    from app.trigger import maybe_schedule
+
+    try:
+        body = json.loads(bytes(response.body))
+    except (json.JSONDecodeError, ValueError, TypeError):
+        return
+    if isinstance(body, dict):
+        maybe_schedule(body, background_tasks)
 
 
 def _duplicate_delivery(

@@ -6,6 +6,12 @@ import os
 
 import pytest
 
+# Automated tests must never fire real LLM/GitHub side effects, so ingestion
+# does not auto-run the agent during the suite. Trigger wiring is covered
+# explicitly in test_api.py; per-test overrides use monkeypatch.setenv, which
+# restores this baseline afterwards.
+os.environ["TRIGGER_MODE"] = "off"
+
 
 @pytest.fixture(scope="session", autouse=True)
 def _reset_agent_run_counter():

@@ -86,6 +86,60 @@ def get_order(order_id: UUID) -> dict[str, Any] | None:
         return dict(row) if row else None
 
 
+_INCIDENT_COLUMNS = """
+    id, created_at, class, status, fingerprint, summary,
+    error_body, payload, recurrence_count, last_seen_at,
+    duplicate_of, issue_url, pr_url, trace
+"""
+
+
+def list_incidents(
+    *,
+    limit: int,
+    before: tuple[Any, UUID] | None = None,
+) -> list[dict[str, Any]]:
+    """Newest-first incidents, keyset-paginated on (created_at, id)."""
+    with connect() as conn:
+        if before is None:
+            rows = conn.execute(
+                f"""
+                SELECT {_INCIDENT_COLUMNS}
+                FROM incidents
+                ORDER BY created_at DESC, id DESC
+                LIMIT %s
+                """,
+                (limit,),
+            ).fetchall()
+        else:
+            created_at, incident_id = before
+            rows = conn.execute(
+                f"""
+                SELECT {_INCIDENT_COLUMNS}
+                FROM incidents
+                WHERE (created_at, id) < (%s, %s)
+                ORDER BY created_at DESC, id DESC
+                LIMIT %s
+                """,
+                (created_at, incident_id, limit),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def list_orders(*, limit: int) -> list[dict[str, Any]]:
+    """Most recent orders first."""
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, order_number, store, status, payload, created_at
+            FROM orders
+            ORDER BY created_at DESC, id DESC
+            LIMIT %s
+            """,
+            (limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
 def create_incident(
     *,
     class_: str,

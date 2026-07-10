@@ -5,12 +5,13 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.generators import SimulateClass, generate_payload
 from app.limits import CountersUnavailableError, check_and_increment_simulate
+from app.trigger import maybe_schedule
 from app.validation import configured_shop_domain
 from app.webhooks import process_order_webhook, sign_body
 
@@ -54,7 +55,11 @@ def _deliver(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 @router.post("/demo/simulate")
-def simulate(request: Request, body: SimulateRequest) -> JSONResponse:
+def simulate(
+    request: Request,
+    body: SimulateRequest,
+    background_tasks: BackgroundTasks,
+) -> JSONResponse:
     ip = _client_ip(request)
     try:
         decision = check_and_increment_simulate(ip)
@@ -82,6 +87,8 @@ def simulate(request: Request, body: SimulateRequest) -> JSONResponse:
         payload = generate_payload(class_)
         first = _deliver(payload)
         second = _deliver(payload)
+        maybe_schedule(first["result"], background_tasks)
+        maybe_schedule(second["result"], background_tasks)
         return JSONResponse(
             {
                 "class": class_,
@@ -92,6 +99,7 @@ def simulate(request: Request, body: SimulateRequest) -> JSONResponse:
 
     payload = generate_payload(class_)
     delivery = _deliver(payload)
+    maybe_schedule(delivery["result"], background_tasks)
     return JSONResponse(
         {
             "class": class_,

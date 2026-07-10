@@ -2,18 +2,31 @@
 
 import psycopg
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from psycopg_pool import PoolTimeout
 
+from app.api import router as api_router
 from app.health import router as health_router
 from app.limits import CountersUnavailableError
 from app.simulate import router as simulate_router
 from app.webhooks import router as webhooks_router
 
 app = FastAPI(title="self-healing-ecommerce-oms")
+
+# Public GETs are safe to expose cross-origin for the portfolio UI; the webhook,
+# simulate, and retry POSTs are not (no preflight is allowed for them).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+
 app.include_router(health_router)
 app.include_router(webhooks_router)
 app.include_router(simulate_router)
+app.include_router(api_router)
 
 
 def _fail_closed(_request: Request, _exc: Exception) -> JSONResponse:
