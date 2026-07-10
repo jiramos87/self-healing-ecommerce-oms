@@ -13,10 +13,14 @@ from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
 
+class StorageUnavailableError(RuntimeError):
+    """Storage cannot be reached or is not configured (fail closed, never 500)."""
+
+
 def database_url() -> str:
     url = os.environ.get("DATABASE_URL")
     if not url:
-        raise RuntimeError("DATABASE_URL is not set")
+        raise StorageUnavailableError("DATABASE_URL is not set")
     return url
 
 

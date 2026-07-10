@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from psycopg_pool import PoolTimeout
 
 from app.api import router as api_router
+from app.db import StorageUnavailableError
 from app.health import router as health_router
 from app.limits import CountersUnavailableError
 from app.simulate import router as simulate_router
@@ -36,9 +37,11 @@ def _fail_closed(_request: Request, _exc: Exception) -> JSONResponse:
     )
 
 
-# PRD invariant: when the store is unreachable, refuse (503) instead of 500.
-# OperationalError covers connection failures only; constraint violations and
-# SQL bugs still surface as 500s.
+# PRD invariant: when the store is unreachable or unconfigured, refuse (503)
+# instead of 500. OperationalError covers connection failures only; constraint
+# violations and SQL bugs still surface as 500s. /health stays 200 and reports
+# counters_ok=false, so a misconfigured deploy is still discoverable.
 app.add_exception_handler(psycopg.OperationalError, _fail_closed)
 app.add_exception_handler(PoolTimeout, _fail_closed)
 app.add_exception_handler(CountersUnavailableError, _fail_closed)
+app.add_exception_handler(StorageUnavailableError, _fail_closed)
