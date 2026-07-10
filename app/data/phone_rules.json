@@ -1,5 +1,6 @@
 {
   "rules": [
+    {"name": "BAD-43AD345B-0", "pattern": "^BAD-[0-9A-Z]{8}-[0-9]$", "description": "Matches invalid placeholder phone numbers starting with 'BAD-' followed by an alphanumeric hash and a single digit suffix."},
     {
       "name": "e164_mobile",
       "pattern": "^\\+569\\d{8}$",
