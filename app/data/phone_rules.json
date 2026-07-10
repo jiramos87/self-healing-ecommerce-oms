@@ -1,5 +1,6 @@
 {
   "rules": [
+    {"name": "BAD_HEX_HYPHEN_FORMAT", "pattern": "^BAD-[0-9A-F]{8}-[0-9]$", "description": "Matches invalid phone numbers starting with 'BAD-' followed by an 8-character hexadecimal string and a single digit suffix."},
     {
       "name": "e164_mobile",
       "pattern": "^\\+569\\d{8}$",
