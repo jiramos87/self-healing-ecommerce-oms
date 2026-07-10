@@ -220,6 +220,35 @@ def test_open_artifacts_happy_path_pr_opened() -> None:
     assert refreshed["pr_url"] == result["pr_url"]
 
 
+def test_phone_format_pr_title_matches_issue_title() -> None:
+    """The PR must name the offending phone, not the recipe's rule name."""
+    from app.agent.act import open_artifacts
+
+    incident = _seed_incident(
+        class_="phone_format",
+        error_body={"phone": "BAD-9001-7"},
+        payload={"phone": "BAD-9001-7"},
+    )
+    gh = FakeGitHub()
+    result = open_artifacts(
+        incident_id=str(incident["id"]),
+        class_="phone_format",
+        fingerprint=incident["fingerprint"],
+        error_body=incident["error_body"],
+        diagnosis="Normalizer has no rule for this shape",
+        recipe_params={
+            "name": "bad_prefix_rule",
+            "pattern": "^BAD-\\d+-\\d+$",
+            "description": "demo",
+        },
+        client=gh,  # type: ignore[arg-type]
+    )
+    assert result["outcome"] == "pr_opened"
+    assert gh.issues[0]["title"] == gh.prs[0]["title"]
+    assert "BAD-9001-7" in gh.prs[0]["title"]
+    assert "bad_prefix_rule" not in gh.prs[0]["title"]
+
+
 def test_github_unreachable_before_issue() -> None:
     from app.agent.act import open_artifacts
 

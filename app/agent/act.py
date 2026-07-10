@@ -208,6 +208,7 @@ def open_artifacts(
             issue_number=issue_number,
             class_=class_,
             params=recipe_params,
+            error_body=error_body,
         )
     except GitHubError as exc:
         return _issue_only(
@@ -255,6 +256,7 @@ def _open_pr(
     issue_number: int,
     class_: str,
     params: dict[str, Any],
+    error_body: dict[str, Any],
 ) -> str:
     base_sha = gh.get_ref_sha("main")
     branch = branch_name(fingerprint)
@@ -278,7 +280,9 @@ def _open_pr(
         sha=file_sha,
     )
     pr = gh.create_pull_request(
-        title=issue_title(class_, _detail_for_title(class_, params, {})),
+        # Same detail as the issue title: an empty error_body here would fall
+        # back to the recipe's rule name and mislabel phone_format PRs.
+        title=issue_title(class_, _detail_for_title(class_, params, error_body)),
         body=pr_body(
             issue_number=issue_number,
             fingerprint=fingerprint,
