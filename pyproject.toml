@@ -2,7 +2,17 @@
 name = "self-healing-ecommerce-oms"
 version = "0.1.0"
 requires-python = ">=3.13"
-dependencies = []
+# Vercel installs exactly this list (pyproject takes precedence over
+# requirements.txt). requirements.txt repeats these pins for local dev and adds
+# tooling; tests/test_packaging.py fails if the two ever drift apart.
+dependencies = [
+    "fastapi==0.115.12",
+    "langgraph==1.2.8",
+    "langchain-core==1.4.9",
+    "httpx==0.28.1",
+    "psycopg[binary,pool]==3.2.9",
+    "pydantic==2.11.7",
+]
 
 # Pin the Vercel FastAPI entrypoint so deploys resolve exactly one function
 # (both api/index.py and app/main.py are otherwise valid candidates) and the
