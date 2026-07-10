@@ -1,8 +1,8 @@
 # self-healing-ecommerce-oms v1 implementation backlog (2026-07-09)
 
 backlog-format: implementation-backlog/v1
-prd: docs/prd/self-healing-oms-v1.md (Status: DEFINED)
-scope: the full v1 incident pipeline per the PRD, including README, screenshots, and portfolio exhibit. Excluded: the portfolio UI page implementation (own PRD in the portfolio repo), PR hygiene job, on_hold reprocessing.
+prd: docs/prd/self-healing-oms-v1.md (backend, DEFINED) + docs/prd/demo-ui-v1.md (demo UI, DEFINED)
+scope: the full v1 incident pipeline, the self-contained demo UI served by the same deploy, the PR-hygiene cleanup job, and the launch deliverables (README, diagram, screenshots, exhibit). Excluded: a portfolio-design-system version of the UI (the portfolio app may later embed/link the self-contained demo), on_hold reprocessing. Scope change (2026-07-10): the demo UI moved from the portfolio repo into this repo, self-contained (Human decision); real public triggering promoted the previously v1.1-deferred PR-hygiene job into v1.
 ship-target: none
 contract: verify gate = ruff + pyright + pytest + app boot. Honesty rail: report failures plainly; degraded states visible, never silent. Cost ceiling: shared OpenRouter prepaid key; max 3 LLM calls per incident; caps 3 simulates/10min per IP, 20 agent runs/day global, limits fail closed. English everywhere. Public content never names past employers or internal codebases ("production ecommerce OMS experience"). Never commit or push without Javier's explicit ok. The agent product never merges anything.
 env-inventory: runtime: DATABASE_URL, OPENROUTER_API_KEY, OPENROUTER_BASE_URL (optional override), GROQ_API_KEY, GITHUB_FIX_PAT, GITHUB_REPO, WEBHOOK_SECRET, ADMIN_TOKEN. Curation-only: none.
@@ -28,6 +28,8 @@ Effort: S < 0.5 day, M = 0.5-1.5 days, L > 1.5 days.
 | B09 | done | 2026-07-09 | 18cab72 | pytest 70 passed incl. test_api 17 (list/detail/order shapes, cursor pagination, empty-list well-formed, bad-cursor 400, retry 401 bad+missing token / 409 wrong-state / 404 / 202 schedules run / stalled->retryable, maybe_schedule background+off+untriggered, webhook route fires bg trigger); ruff+pyright green. Live manual TRIGGER_MODE=background, every class to terminal <60s: valid->order; unknown_region->pr_opened 18.4s (issue #4/PR #5); phone_format->pr_opened 21.5s; duplicate_delivery->duplicate 0.8s; cancelled_order->expected_behavior 0.6s; detail returns nested github + full 7-step trace. CAVEAT: GET p95<500ms not met locally (~580ms floor = remote Railway WAN RTT; bare SELECT 1 p50 584ms; app adds ~100ms) - deferred to B10 live launch gate on co-located deploy. Touched outside stated Files (necessary wiring): app/db.py (list_incidents keyset + list_orders), app/webhooks.py + app/simulate.py (trigger), app/main.py (api router + GET-only CORS), .env.example (TRIGGER_MODE), tests/conftest.py (TRIGGER_MODE=off suite baseline). Live GitHub artifacts left open for human review; agent never merges. |
 | B10 | done | 2026-07-10 | 01c7a7c | Deployed to Vercel prod (project self-healing-ecommerce-oms, region sfo1, git-connected). Public URL https://self-healing-ecommerce-oms.vercel.app. Launch gate PASSED against the live URL: 20 bulk deliveries all correct terminal states under 60s (6 valid->order ~0.3s, 5 duplicate_delivery->duplicate ~1.0s, 5 cancelled_order->expected_behavior ~0.6s, 2 unknown_region->pr_opened 12.4/7.7s, 2 phone_format->pr_opened 7.7/7.8s); recurrence pass one incident count=2 no 2nd issue; merge-closes-loop: unknown_region OB->pr_opened (PR #19, 1 file +1/-0), human merged, git-connected redeploy live, re-sent OB->order created no incident, original on_hold order stays on_hold (57 on_hold orders retained, no auto-reprocess per PRD). GET p95 378ms < 500ms (B09 deferred bar now met on co-located sfo1 deploy). Gate process was killed at the interactive merge pause when its FIFO writer was reaped; the post-merge re-send assertion was completed and verified manually (OB now resolves live; probe order created, incident_id null). Four deploy-blocking defects found+fixed on the way (see commits 21d842d packaging/no-deps-installed, 01c7a7c storage-fail-closed, dc6bef1 PR-title+sfo1, B09 admin-token compare_digest). All 20 gate PRs/issues closed to keep repo clean. |
 | B11 | pending | - | - | - |
+| B12 | pending | - | - | - |
+| B13 | pending | - | - | - |
 
 ---
 
@@ -193,11 +195,43 @@ Effort: S < 0.5 day, M = 0.5-1.5 days, L > 1.5 days.
 
 ---
 
-## B11. README, screenshots, and portfolio exhibit [M] (PRD: Done looks like; public-content invariant)
+## B11. Self-contained demo UI [L] (PRD: docs/prd/demo-ui-v1.md)
 
-**Goal.** The public story ships: README with architecture diagram, screenshot set, and the portfolio exhibit entry.
+**Goal.** The site root renders a self-serve dashboard where a visitor triggers each of the five classes and watches incidents reach four visibly distinct terminal states with live agent trace and real GitHub links, honest degradation everywhere. Full behavior + acceptance: docs/prd/demo-ui-v1.md.
 
-**Change.** README: what/why, architecture diagram (ASCII or SVG), demo guide, the guardrails story (recipes, gates, caps, human merge), cost story, grounding phrased as generic production ecommerce OMS experience. Screenshots of the live demo states (incident timeline, issue, one-line PR diff). Portfolio exhibit record generated with the agentic-dev-kit MCP `scaffold_exhibit` tool and added to the portfolio app's data (portfolio repo). needs-human: copy review and final screenshot capture.
+**Change.** Serve a self-contained dashboard at `GET /` from the existing FastAPI app (no bundler, no new deploy surface, no external runtime host: assets inline or self-served, CSP-friendly). It consumes the existing read API (`/health`, `/incidents`, `/incidents/{id}`, `/orders`) and the rate-limited `POST /demo/simulate`; it adds no other endpoint and changes no existing response shape (the launch gate and portfolio consumers must not break). Auto-poll ~3s while any incident is non-terminal, back off when settled. Honor 429 (retry countdown, disable buttons) and 503 (temporarily-unavailable state, auto-recover). Show status badges for every terminal state, per-step trace (step, served_by, ms), issue/PR links, recent orders, caps/health strip, and a hero explaining the demo + guardrails. Never put the admin retry control or any secret in the browser. Public copy stays generic ("production ecommerce OMS experience"). Verify per the /verify skill including driving the deployed URL.
+
+**Acceptance.**
+- build: verify gate green (ruff + pyright + pytest + app boot); a test asserts `GET /` returns HTML and the JSON endpoint paths/shapes are unchanged.
+- manual/visual: on the deployed URL, clicking unknown_region shows an incident advancing received -> diagnosing -> pr_opened live, expandable to its trace with working issue + PR links; each of the five classes reaches its correct terminal badge; 429 shows the countdown wall; a screenshot of the populated dashboard on a laptop viewport.
+
+**Files.** app/main.py (root route/static), app/static/* (or an inline template module), tests/test_ui.py.
+
+**Depends on.** B10.
+
+---
+
+## B12. PR-hygiene cleanup job [S] (PRD: demo-ui-v1.md Dependencies; self-healing-oms-v1 out-of-scope promotion)
+
+**Goal.** Public demo traffic cannot let agent PRs pile up: stale `agent/*` PRs and their issues close automatically and branches are pruned, so the repo stays clean without manual work.
+
+**Change.** A free scheduled GitHub Actions workflow (public repo) runs on a cron (e.g. hourly or daily) and closes open PRs on `agent/fix-*` branches older than a short threshold (e.g. 24h), closes their linked issues, and deletes the merged/closed branches. Idempotent and safe to re-run. Never touches human PRs or `main`. needs-human: confirm the threshold and that the workflow's token has the right scope (the default `GITHUB_TOKEN` with `pull-requests: write` + `issues: write` + `contents: write`, not GITHUB_FIX_PAT).
+
+**Acceptance.**
+- manual: a dry-run (or workflow_dispatch) run closes a seeded stale `agent/*` PR + issue and prunes the branch, and leaves a non-agent PR untouched.
+- manual: workflow file validates and appears under the repo Actions tab on its schedule.
+
+**Files.** .github/workflows/pr-hygiene.yml (+ optional scripts/ helper).
+
+**Depends on.** B11.
+
+---
+
+## B13. README, diagram, screenshots, and portfolio exhibit [M] (PRD: self-healing-oms-v1 Done looks like; public-content invariant)
+
+**Goal.** The public story ships: README with architecture diagram, screenshot set of the live demo UI, and the portfolio exhibit entry.
+
+**Change.** README: what/why, architecture diagram (ASCII or SVG), demo guide, the guardrails story (recipes, gates, caps, human merge, branch protection), cost story, grounding phrased as generic production ecommerce OMS experience. Screenshots captured from the shipped demo UI (B11): the dashboard, an incident timeline with trace, and the real one-line PR diff. Portfolio exhibit record generated with the agentic-dev-kit MCP `scaffold_exhibit` tool and added to the portfolio app's data (portfolio repo). needs-human: copy review and final screenshot capture.
 
 **Acceptance.**
 - manual: README renders correctly on GitHub; `grep -ri` for past-employer names across the repo returns nothing.
@@ -205,7 +239,9 @@ Effort: S < 0.5 day, M = 0.5-1.5 days, L > 1.5 days.
 
 **Files.** README.md, docs/screenshots/*, portfolio repo exhibit data file.
 
-**Depends on.** B10.
+**Depends on.** B11, B12.
+
+Note (2026-07-10): renumbered from B11 to B13 when the demo UI (B11) and PR-hygiene job (B12) were inserted ahead of it; screenshots now come from the shipped UI, so this depends on B11.
 
 ---
 

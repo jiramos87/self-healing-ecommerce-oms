@@ -38,7 +38,8 @@ TBD: scaffold pending PRD. The verify gate for Python here will be lint (ruff) +
 ## Docs map
 
 - docs/idea.md: expanded concept definition (base for the PRD and grill).
-- docs/prd/self-healing-oms-v1.md: v1 behavioral spec (DEFINED).
+- docs/prd/self-healing-oms-v1.md: v1 backend behavioral spec (DEFINED).
+- docs/prd/demo-ui-v1.md: self-contained demo UI spec (DEFINED).
 - docs/backlogs/self-healing-oms-v1-backlog-2026-07-09.md: dependency-ordered implementation backlog (execute via /backlog-implement).
 - docs/build-plan.md: one-line progress ledger across sessions.
 - docs/templates/implementation-backlog-template.md: backlog doc contract.

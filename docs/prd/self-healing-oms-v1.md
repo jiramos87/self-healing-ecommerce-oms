@@ -90,7 +90,7 @@ Outputs:
 
 ## Out of scope
 
-- The portfolio UI page implementation (separate PRD in the portfolio repo; this spec guarantees the API it consumes).
+- The demo UI (its own spec: docs/prd/demo-ui-v1.md). This spec guarantees the read API + simulate endpoint the UI consumes.
 - PR hygiene job (stale `agent/*` PR closer): separate small feature after v1.
 - Reprocessing of on_hold orders after fixes merge.
 - Embeddings/RAG retrieval; auto-merge; auto-deploy of merged fixes; real Shopify integration; additional marketplaces; multi-store or multi-tenant; user auth beyond the admin token; data retention/cleanup policies.
@@ -119,3 +119,4 @@ A live Vercel URL passing the scripted 20-run launch gate, all acceptance scenar
 - 2026-07-09 (grill): launch gate pinned to a scripted 20-run pass against the live deployment - added - repeatable yardstick.
 - 2026-07-09 (grill): README (diagram), screenshots, and portfolio exhibit promoted into this PRD's scope; all public grounding de-identified (no employer names) - promoted + changed - Human decision during grill.
 - 2026-07-09: Status DRAFT -> DEFINED.
+- 2026-07-10: demo UI moved out of the portfolio repo into a self-contained page in this repo - changed - Human decision; behavior now in docs/prd/demo-ui-v1.md. This PRD stays backend-only and still just guarantees the API the UI consumes.
