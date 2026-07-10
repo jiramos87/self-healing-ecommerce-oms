@@ -11,6 +11,7 @@ from app.db import StorageUnavailableError
 from app.health import router as health_router
 from app.limits import CountersUnavailableError
 from app.simulate import router as simulate_router
+from app.ui import router as ui_router
 from app.webhooks import router as webhooks_router
 
 app = FastAPI(title="self-healing-ecommerce-oms")
@@ -24,6 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(ui_router)
 app.include_router(health_router)
 app.include_router(webhooks_router)
 app.include_router(simulate_router)
