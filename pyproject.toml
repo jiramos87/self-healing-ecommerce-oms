@@ -4,6 +4,12 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = []
 
+# Pin the Vercel FastAPI entrypoint so deploys resolve exactly one function
+# (both api/index.py and app/main.py are otherwise valid candidates) and the
+# whole app is served, not just an /api/* subtree. Entry matches the seams.
+[tool.vercel]
+entrypoint = "api.index:app"
+
 [tool.ruff]
 target-version = "py313"
 line-length = 100
